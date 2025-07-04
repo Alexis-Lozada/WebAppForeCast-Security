@@ -85,6 +85,10 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Obtener instancia del Logerservice para el manejo global de errores
+using var scope = app.Services.CreateScope();
+var loggerService = scope.ServiceProvider.GetRequiredService<Logerservice>();
+
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
@@ -94,7 +98,9 @@ app.UseExceptionHandler(errorApp =>
         var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
         if (error != null)
         {
-            await context.Response.WriteAsync(
+			await loggerService.LogAsync("ERROR", "Unhandled exception", error.Error);
+
+			await context.Response.WriteAsync(
                 System.Text.Json.JsonSerializer.Serialize(new
                 {
                     error = "Ha ocurrido un error interno en el servidor.",

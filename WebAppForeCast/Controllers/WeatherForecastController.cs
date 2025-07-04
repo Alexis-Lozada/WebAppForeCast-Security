@@ -42,31 +42,37 @@ namespace WebAppForeCast.Controllers
 			return Ok(forecast);
         }
 
-        [HttpPut("{id:int}", Name = "UpdateWeatherForecast")]
-        public IActionResult Update(int id, WeatherForecast updateForecast)
-        {
-            if (!_service.Update(id, updateForecast))
-            {
-                return NotFound();
-            }
-            return NoContent();
-        }
+		[HttpPut("{id:int}", Name = "UpdateWeatherForecast")]
+		public async Task<IActionResult> Update(int id, WeatherForecast updateForecast)
+		{
+			if (!_service.Update(id, updateForecast))
+			{
+				await _logerservice.LogAsync("WARNING", $"Update failed: Forecast with ID {id} not found.");
+				return NotFound();
+			}
+			await _logerservice.LogAsync("INFORMATION", $"Forecast with ID {id} updated successfully.");
+			return NoContent();
+		}
 
-        [HttpDelete("{id:int}")]
-        public IActionResult Delete(int id)
-        {
-            if (!_service.Delete(id))
-            {
-                return NotFound();
-            }
-            return NoContent();
-        }
+		[HttpDelete("{id:int}")]
+		public async Task<IActionResult> Delete(int id)
+		{
+			if (!_service.Delete(id))
+			{
+				await _logerservice.LogAsync("WARNING", $"Delete failed: Forecast with ID {id} not found.");
+				return NotFound();
+			}
+			await _logerservice.LogAsync("INFORMATION", $"Forecast with ID {id} deleted successfully.");
+			return NoContent();
+		}
 
-        [HttpPost(Name = "PostWeatherForescast")]
-        public ActionResult<WeatherForecast> Create(WeatherForecast forecast)
-        {
-            var createdForecast = _service.Create(forecast);
-            return CreatedAtAction(nameof(Get), new { id = createdForecast.Id }, createdForecast);
-        }
-    }
+		[HttpPost(Name = "PostWeatherForescast")]
+		public async Task<ActionResult<WeatherForecast>> Create(WeatherForecast forecast)
+		{
+			var createdForecast = _service.Create(forecast);
+			await _logerservice.LogAsync("INFORMATION", $"Forecast created with ID {createdForecast.Id}.");
+			return CreatedAtAction(nameof(Get), new { id = createdForecast.Id }, createdForecast);
+		}
+
+	}
 }

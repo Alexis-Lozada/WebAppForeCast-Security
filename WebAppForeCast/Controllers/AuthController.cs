@@ -17,12 +17,15 @@ namespace WebAppForeCast.Controllers
 	{
 		private readonly IConfiguration _configuration;
 		private readonly UserService _userService;
+		private readonly Logerservice _logerservice;
 		//private static readonly string _storedPassword = _passwordHasher.HashPassword("admin123");
 
-		public AuthController(IConfiguration configuration, UserService userService)
+		public AuthController(IConfiguration configuration, UserService userService, Logerservice logerservice)
 		{
 			_configuration = configuration;
 			_userService = userService;
+			_logerservice = logerservice;
+			_logerservice = logerservice;
 		}
 
 		[HttpPost("register")]
@@ -30,18 +33,19 @@ namespace WebAppForeCast.Controllers
 		{
 			if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
 			{
+				await _logerservice.LogAsync("WARNING", "Intento de registro con campos vacíos.");
 				return BadRequest(new { message = "El nombre de usuario y la contraseña son obligatorios" });
 			}
 
-			// Validar email
 			if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
 			{
+				await _logerservice.LogAsync("WARNING", "Correo inválido durante el registro.");
 				return BadRequest(new { message = "El correo electrónico no tiene un formato válido" });
 			}
 
-			// Validar contraseña
 			if (!Regex.IsMatch(request.Password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$"))
 			{
+				await _logerservice.LogAsync("WARNING", "Contraseña no cumple requisitos mínimos de seguridad.");
 				return BadRequest(new
 				{
 					message = "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial"
@@ -57,8 +61,11 @@ namespace WebAppForeCast.Controllers
 			var createdUser = await _userService.CreateUserAsync(user, request.Password);
 			if (createdUser == null)
 			{
+				await _logerservice.LogAsync("WARNING", $"Intento de registro fallido: usuario '{request.Username}' ya existe.");
 				return Conflict(new { message = "El usuario ya existe" });
 			}
+
+			await _logerservice.LogAsync("INFORMATION", $"Usuario registrado exitosamente: {request.Username}.");
 			return Ok(new { message = "Usuario registrado exitosamente" });
 		}
 
@@ -67,6 +74,7 @@ namespace WebAppForeCast.Controllers
 		{
 			if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
 			{
+				await _logerservice.LogAsync("WARNING", "Intento de login con campos vacíos.");
 				return BadRequest(new { message = "El nombre de usuario y la contraseña son obligatorios" });
 			}
 
@@ -74,13 +82,14 @@ namespace WebAppForeCast.Controllers
 
 			if (user == null || !PasswordHasher.VerifyPassword(request.Password, user.PasswordHash))
 			{
+				await _logerservice.LogAsync("WARNING", $"Login fallido para usuario: {request.Username}.");
 				return Unauthorized(new { message = "Credenciales inválidas" });
 			}
 
+			await _logerservice.LogAsync("INFORMATION", $"Login exitoso para usuario: {request.Username}.");
 			var token = GenerateJwtToken(user.Username, user.Role);
 			return Ok(new { token });
 		}
-
 
 		private string GenerateJwtToken(string username, string role)
 		{
